@@ -1,0 +1,41 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    uses: devfibre/shared-workflows/.github/workflows/secret-scan.yaml@main
+
+  lint:
+    uses: devfibre/shared-workflows/.github/workflows/lint.yaml@main
+    with:
+      command: npx --yes oxlint@1 app components hooks lib && npm run build
+      install-command: npm ci
+      language: node
+
+  unit:
+    uses: devfibre/shared-workflows/.github/workflows/test.yaml@main
+    with:
+      skip: true
+
+  e2e:
+    uses: devfibre/shared-workflows/.github/workflows/test.yaml@main
+    with:
+      skip: true
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: [secrets, lint, unit, e2e]
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    uses: devfibre/shared-workflows/.github/workflows/release.yaml@main
+    with:
+      branch: master
